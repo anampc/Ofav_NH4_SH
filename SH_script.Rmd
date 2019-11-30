@@ -117,7 +117,7 @@ rownames(SampleName) <- SampleName$Sample.Plate
     Ofav$Log_tot.SH[which(Ofav$tot.SH==0)] <- NA
     
 ```
-## Check the data and export it if a want local backup
+## Check the data and export it if want a local backup
 
 ```{r}
       summary(Ofav)
