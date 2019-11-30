@@ -121,13 +121,17 @@ rownames(SampleName) <- SampleName$Sample.Plate
 ## Check the data and export it if want a local backup
 
 ```{r}
-      summary(Ofav)
 
-      N_Colony_Treatment<-Ofav %>%
+Ofav$Colony <- factor(Ofav$Colony, labels = c("Colony 1", "Colony 2", "Colony 3", "Colony 4"))
+
+summary(Ofav)
+
+N_Colony_Treatment<-Ofav %>%
          group_by(Colony, Treatment, Treatment2) %>%
          dplyr::summarise(N = n())
-      N_Colony_Treatment
-      #write.csv(Ofav, file = 'Outputs/OfavSH.csv', row.names = F )
+N_Colony_Treatment
+
+# write.csv(Ofav, file = 'Outputs/OfavSH.csv', row.names = F )
 ```
 
 # 2. Stats and graphs
@@ -151,8 +155,6 @@ TotSH <-ggplot(Ofav, aes(Treatment, tot.SH)) +
             axis.title.y= element_text(size=rel(1.5)),
             plot.title= element_text(size=rel(1.5)))
 
-
-Ofav$Colony <- factor(Ofav$Colony, labels = c("Colony 1", "Colony 2", "Colony 3", "Colony 4"))
 
 SH_Colony <- ggplot(Ofav, aes(Treatment, tot.SH)) +
         stat_summary(fun.data = "mean_cl_boot",geom = "errorbar", width = 0.2) +
@@ -215,11 +217,11 @@ emmip(TwoFactorAOVLog, ~Treatment|Colony, CIs = TRUE,
     ## Only treatment
     Treatment.emm<-emmeans(TwoFactorAOVLog, ~Treatment)
     Treatment.emm
-    #pairs(Treatment.emm)
+    pairs(Treatment.emm)
 
     ## Treatment and colony
     Treatment_Colony.emm<-emmeans(TwoFactorAOVLog, ~Treatment + Colony)
-    pairs(Treatment_Colony.emm)
+    #pairs(Treatment_Colony.emm)
     LogTukey<-cld(Treatment_Colony.emm, by=NULL) # compact-letter display
     LogTukey<-LogTukey[order(LogTukey$Colony),]
     LogTukey
