@@ -117,10 +117,16 @@ rownames(SampleName) <- SampleName$Sample.Plate
     Ofav$Log_tot.SH[which(Ofav$tot.SH==0)] <- NA
     
 ```
+
 ## Check the data and export it if want a local backup
 
 ```{r}
       summary(Ofav)
+
+      N_Colony_Treatment<-Ofav %>%
+         group_by(Colony, Treatment, Treatment2) %>%
+         dplyr::summarise(N = n())
+      N_Colony_Treatment
       #write.csv(Ofav, file = 'Outputs/OfavSH.csv', row.names = F )
 ```
 
