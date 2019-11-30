@@ -1,0 +1,222 @@
+---
+title: "Symbiot to host cell ratios (S/H) in *O. faveolata* colonies exposed to elevated nutrients and immune challenge"
+
+author: "Ana M. Palacio-Castro"
+date: "May 4th, 2017"
+output:
+  html_document:
+    fig_height: 7
+    fig_width: 7
+    df_print: paged
+    toc: yes
+editor_options:
+  chunk_output_type: console
+---
+
+# 1. Calculate S/H cell ratio 
+
+## General project set-up 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
+```
+
+```{r libraries , results="hide"}
+
+# Get all libraries and sources required to run the script
+#devtools::install_github("jrcunning/steponeR")
+        library(tidyverse )
+        library(steponeR)
+        library(plyr)
+        library(reshape2)
+        library(ggthemes)
+        library(gridExtra)
+        library(lme4)
+        library(effects)
+        library(lmerTest)
+        library(emmeans)
+```
+
+## Calculate qPCR RATIOS (Symbiont/Coral) 
+
+Get the raw data for Ofav R.Cunning steponeR function:
+
+* Get list of plate files to read
+
+* Calculate the ratios
+
+* Extract the results
+ 
+```{r CalculateRatios}
+
+  Ofav.plates <- list.files(path="Data", pattern="csv", full.names=T)
+  # Ofav.plates
+
+  # Run Stepone function to get target ratios
+  
+  Ofav.Out <- steponeR(files=Ofav.plates, target.ratios=c("D.Ofav"), 
+                       fluor.norm=list(D=0, Ofav=0),
+                       copy.number=list(D=3, Ofav=1),
+                       ploidy=list(D=1, Ofav=2),
+                       extract=list(D=0.813, Ofav=0.982))
+  
+  # Target ratio results
+  Ofav<-Ofav.Out$result
+
+```
+
+## Data cleaning
+
+```{r RemoveNTCandControls}
+    # 1. Check and remove NTC wells
+    
+    ntc <- Ofav[which(Ofav$Sample.Name=="NTC"), ]
+    Ofav <- droplevels(Ofav[!rownames(Ofav) %in% rownames(ntc), ])
+    
+    # 2. Check and remove + Control wells
+    
+    Positive <- Ofav[which(Ofav$Sample.Name=="+"), ]
+    Ofav <- droplevels(Ofav[!rownames(Ofav) %in% rownames(Positive), ])
+
+    # 3. Remove data for samples in which only one technical replicate amplified
+
+    Ofav$D.Ofav[which(Ofav$D.reps==1)] <- NA
+    colnames(Ofav)[which(colnames(Ofav) %in% c("D.Ofav" ))] <- c("D.SH")  
+    Ofav$D.SH[is.na(Ofav$D.SH)] <- 0
+    Ofav$tot.SH <- Ofav$D.SH
+    
+    NoHSratio <- Ofav[which(Ofav$tot.SH==0), ]
+    Ofav <- droplevels(Ofav[!rownames(Ofav) %in% rownames(NoHSratio), ])
+    
+    # 4. Remove samples with SD>1
+    StDe1 <- Ofav[which((Ofav$Ofav.CT.sd>0.8)|(Ofav$D.CT.sd>1.0)), ]
+    Ofav <- droplevels(Ofav[!rownames(Ofav) %in% rownames(StDe1), ])
+  
+```
+  
+## Labeling and sample information
+
+```{r GetLabelsAndSampleInfo}
+
+# Get the sample information 
+  SampleName<-read.csv("Sample_Plates.csv") 
+
+# Create unique sample ID+FileName to relabel samples  
+   Ofav$Sample.Plate<-paste(Ofav$Sample.Name,Ofav$File.Name, sep="_")
+   
+# Replace Sample.Names in qPCR data 
+
+rownames(SampleName) <- SampleName$Sample.Plate
+    Ofav$Treatment<-SampleName[as.character(Ofav$Sample.Plate), "Treatment"]
+    Ofav$Replicate<-SampleName[as.character(Ofav$Sample.Plate), "Replicate"]
+    Ofav$Core<-SampleName[as.character(Ofav$Sample.Plate), "Core"]
+    Ofav$Colony<-SampleName[as.character(Ofav$Sample.Plate), "Colony"]
+    Ofav$Treatment2<-SampleName[as.character(Ofav$Sample.Plate), "Treatment2"]
+         
+    Ofav$Log_tot.SH <- log10(Ofav$tot.SH)  # Calculate log10 SH ratio
+    Ofav$Log_tot.SH[which(Ofav$tot.SH==0)] <- NA
+    
+```
+## Check the data and export it if a want local backup
+
+```{r}
+      summary(Ofav)
+      #write.csv(Ofav, file = 'Outputs/OfavSH.csv', row.names = F )
+```
+
+# 2. Stats and graphs
+
+Figure 1 shows non-transformed data. Statistical test used log10 transformed data since raw S/H cell ratios have a skewed distribution
+
+## Figure 1
+  
+```{r}
+
+TotSH <-ggplot(Ofav, aes(Treatment, tot.SH)) +
+        stat_summary(fun.data = "mean_cl_boot",geom = "errorbar", width = 0.2) +
+        stat_summary(fun.y=mean, geom="point", size =4, alpha=0.5) + 
+        #stat_summary(fun.y=mean, geom="line")  +
+        theme_bw()+ ylab ("Symbiont to host (S/H) cell ratio") + 
+        xlab("") + ggtitle("a.")+
+        theme(panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            axis.text.x=element_text(size=rel(1.5)),
+            axis.text.y=element_text(size=rel(1.5)),
+            axis.title.y= element_text(size=rel(1.5)),
+            plot.title= element_text(size=rel(1.5)))
+
+
+Ofav$Colony <- factor(Ofav$Colony, labels = c("Colony 1", "Colony 2", "Colony 3", "Colony 4"))
+
+SH_Colony <- ggplot(Ofav, aes(Treatment, tot.SH)) +
+        stat_summary(fun.data = "mean_cl_boot",geom = "errorbar", width = 0.2) +
+        stat_summary(fun.y=mean, geom="point", size =4, alpha=0.5) + 
+        #stat_summary(fun.y=mean, geom="line")  +
+       theme_bw()+ ylab ("") + ggtitle("b.")+ xlab("")+
+       facet_wrap(~Colony, scales = "free") +
+         theme( panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            axis.text.x=element_text(size=rel(1.5)),
+            axis.text.y=element_text(size=rel(1.5)),
+            axis.title.y= element_text(size=rel(1.5)),
+            plot.title= element_text(size=rel(1.5)))
+
+Figure_1<-grid.arrange(TotSH,SH_Colony, nrow=1, widths=c(1/3, 2/3))
+
+# ggsave(file="Outputs/Figure1.png", plot=Figure_1 , width=6.0, height=4, dpi=300)
+
+```
+
+
+## ANOVAs
+    
+### One way ANOVA to test the effect of nutrients alone: 
+    
+```{r}
+    OnwWayANOVA<-aov(Log_tot.SH~Treatment, data=Ofav)
+        summary(OnwWayANOVA)
+        
+```
+
+Nutrients significantly increased the SH cell ratio
+
+### Two Way ANOVA to test the effects of Nutrients (Treatment) * TGFB (Treatment.2)
+
+```{r}
+    
+    TwoWayANOVA<-aov(Log_tot.SH ~ Treatment+Treatment2, data=Ofav)
+        summary(TwoWayANOVA)
+        drop1(TwoWayANOVA,~.,test="F")
+        
+```
+
+Summary(ANOVA) and drop1(ANOVA) give different p values for the model, but in both cases Treatment (Nutrients) has a significant effect on the S/H cell ratio while Treatment.2 (TGFB) does not, nor the interaction.
+
+### Two Way ANOVA to test the effects of Nutrients (Treatment) + Colony
+  
+```{r Models}
+
+TwoFactorAOVLog<-lm(Log_tot.SH ~ Treatment * Colony, data=Ofav)
+        step(TwoFactorAOVLog) # Interaction is not significant
+TwoFactorAOVLog<-lm(Log_tot.SH ~ Treatment + Colony, data=Ofav)
+        anova(TwoFactorAOVLog)
+        summary(TwoFactorAOVLog)
+        
+plot(Effect(c("Treatment"), TwoFactorAOVLog), x.var="Treatment", multiline=T)
+emmip(TwoFactorAOVLog, ~Treatment|Colony, CIs = TRUE, 
+      aes(Colony=factor(Treatment))) + theme_gdocs()
+
+    ## Only treatment
+    Treatment.emm<-emmeans(TwoFactorAOVLog, ~Treatment)
+    Treatment.emm
+    #pairs(Treatment.emm)
+
+    ## Treatment and colony
+    Treatment_Colony.emm<-emmeans(TwoFactorAOVLog, ~Treatment + Colony)
+    pairs(Treatment_Colony.emm)
+    LogTukey<-cld(Treatment_Colony.emm, by=NULL) # compact-letter display
+    LogTukey<-LogTukey[order(LogTukey$Colony),]
+    LogTukey
+    #write.csv(LogTukey, "Outputs/LogTukey.csv", row.names = F)
+
+```
