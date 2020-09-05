@@ -2,7 +2,7 @@
 title: "Symbiot to host cell ratios (S/H) in *O. faveolata* colonies exposed to elevated nutrients and immune challenge"
 
 author: "Ana M. Palacio-Castro"
-date: "May 4th, 2017"
+date: "`r Sys.Date()`"
 output:
   html_document:
     fig_height: 7
@@ -35,6 +35,7 @@ knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
         library(effects)
         library(lmerTest)
         library(emmeans)
+        library(car)
 ```
 
 ## Calculate qPCR RATIOS (Symbiont/Coral) 
@@ -112,6 +113,8 @@ rownames(SampleName) <- SampleName$Sample.Plate
     Ofav$Core<-SampleName[as.character(Ofav$Sample.Plate), "Core"]
     Ofav$Colony<-SampleName[as.character(Ofav$Sample.Plate), "Colony"]
     Ofav$Treatment2<-SampleName[as.character(Ofav$Sample.Plate), "Treatment2"]
+    Ofav$C<-SampleName[as.character(Ofav$Sample.Plate), "C"]
+    Ofav$RNASeq<-SampleName[as.character(Ofav$Sample.Plate), "Sequenced"]
          
     Ofav$Log_tot.SH <- log10(Ofav$tot.SH)  # Calculate log10 SH ratio
     Ofav$Log_tot.SH[which(Ofav$tot.SH==0)] <- NA
@@ -123,6 +126,7 @@ rownames(SampleName) <- SampleName$Sample.Plate
 ```{r}
 
 Ofav$Colony <- factor(Ofav$Colony, labels = c("Colony 1", "Colony 2", "Colony 3", "Colony 4"))
+Ofav$Treatment <- factor(Ofav$Treatment, labels = c("C", "N"))
 
 summary(Ofav)
 
@@ -159,6 +163,7 @@ TotSH <-ggplot(Ofav, aes(Treatment, tot.SH)) +
 SH_Colony <- ggplot(Ofav, aes(Treatment, tot.SH)) +
         stat_summary(fun.data = "mean_cl_boot",geom = "errorbar", width = 0.2) +
         stat_summary(fun.y=mean, geom="point", size =4, alpha=0.5) + 
+        geom_point(shape=21)+
         #stat_summary(fun.y=mean, geom="line")  +
        theme_bw()+ ylab ("") + ggtitle("b.")+ xlab("")+
        facet_wrap(~Colony, scales = "free") +
@@ -179,9 +184,36 @@ Figure_1<-grid.arrange(TotSH,SH_Colony, nrow=1, widths=c(1/3, 2/3))
 ## ANOVAs
     
 ### One way ANOVA to test the effect of nutrients alone: 
+
+#### Normality
+
+```{r}
+shapiro.test(Ofav$Log_tot.SH)
+# Not significatly different from a normal distribution
+
+```
+
+#### homoscedasticity
+
+```{r}
+var.test(Log_tot.SH~Treatment, data=Ofav) 
+# No significat differences between two variances
+
+bartlett.test(Log_tot.SH~Treatment, data=Ofav) 
+# No significat differences between two variances
+
+leveneTest(Log_tot.SH~Treatment, data=Ofav) 
+# No significat differences between two variances
+
+fligner.test(Log_tot.SH~Treatment, data=Ofav) 
+# No significat differences between two variances
+
+```
+
     
 ```{r}
-    OnwWayANOVA<-aov(Log_tot.SH~Treatment, data=Ofav)
+
+OnwWayANOVA<-aov(Log_tot.SH~Treatment, data=Ofav)
         summary(OnwWayANOVA)
         
 ```
@@ -192,7 +224,7 @@ Nutrients significantly increased the SH cell ratio
 
 ```{r}
     
-    TwoWayANOVA<-aov(Log_tot.SH ~ Treatment+Treatment2, data=Ofav)
+TwoWayANOVA<-aov(Log_tot.SH ~ Treatment+Treatment2, data=Ofav)
         summary(TwoWayANOVA)
         drop1(TwoWayANOVA,~.,test="F")
         
