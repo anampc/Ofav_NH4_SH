@@ -1,6 +1,6 @@
 # Effect of elevated NH4 on *Orbicella faveolata* symbiont to host cell ratio (S/H)
 
-[![DOI](https://zenodo.org/badge/doi/XXX/zenodo.XXX.svg)](http://dx.doi.org/XXX/zenodo.XXX)
+[![DOI](https://zenodo.org/badge/224942894.svg)](https://zenodo.org/badge/latestdoi/224942894)
 
 This repository contains data and analysis scripts for the manuscript:
 
