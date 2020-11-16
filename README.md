@@ -6,7 +6,7 @@ This repository contains data and analysis scripts for the manuscript:
 
 ## Increased Algal Symbiont Density Reduces Host Immunity in a Threatened Caribbean Coral Species, *Orbicella faveolata*
 #### Authors: Lauren E. Fuess, Ana M. Palacio-Castro, Caleb C. Butler, Andrew C. Baker, Laura D. Mydlarz
-#### Journal: _XXX_ [doi:10.3389/fevo.2020.572942](https://doi.org/10.3389/fevo.2020.572942)  
+#### Journal: _Front. Ecol. Evol_ [doi:10.3389/fevo.2020.572942](https://doi.org/10.3389/fevo.2020.572942)  
 
 -----
 
