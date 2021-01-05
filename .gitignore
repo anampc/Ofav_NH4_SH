@@ -19,3 +19,6 @@
 .DS_Store
 .Rproj.user
 _config.yml
+
+# Google analytics
+myheader.html

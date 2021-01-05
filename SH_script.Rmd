@@ -11,6 +11,8 @@ output:
     toc: yes
 editor_options:
   chunk_output_type: console
+includes:
+       in_header: myheader.html
 ---
 
 # 1. Calculate S/H cell ratio 
